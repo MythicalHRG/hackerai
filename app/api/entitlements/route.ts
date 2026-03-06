@@ -72,39 +72,14 @@ export async function GET(req: NextRequest) {
       ? entitlements
       : [];
 
-    // Compute a single subscription tier
-    // Prefer normalized entitlements (e.g. "ultra-plan", "pro-plan", "team-plan") if present,
-    // but maintain backward compatibility by also checking monthly/yearly variants.
-    const hasUltra =
-      allEntitlements.includes("ultra-plan") ||
-      allEntitlements.includes("ultra-monthly-plan") ||
-      allEntitlements.includes("ultra-yearly-plan");
-    const hasTeam = allEntitlements.includes("team-plan");
-    const hasProPlus =
-      allEntitlements.includes("pro-plus-plan") ||
-      allEntitlements.includes("pro-plus-monthly-plan") ||
-      allEntitlements.includes("pro-plus-yearly-plan");
-    const hasPro =
-      allEntitlements.includes("pro-plan") ||
-      allEntitlements.includes("pro-monthly-plan") ||
-      allEntitlements.includes("pro-yearly-plan");
+// Bypassed: Force the highest tier for open-source self-hosting
+    const subscription: SubscriptionTier = "ultra";
 
-    const subscription: SubscriptionTier = hasUltra
-      ? "ultra"
-      : hasTeam
-        ? "team"
-        : hasProPlus
-          ? "pro-plus"
-          : hasPro
-            ? "pro"
-            : "free";
-
-    // Create response with entitlements and normalized subscription tier
+    // Create response with simulated "Ultra" entitlements
     const response = json({
-      entitlements: allEntitlements,
+      entitlements: ["ultra-plan", "pro-plan", "team-plan", "pro-plus-plan"],
       subscription,
     });
-
     // Set the updated refresh session data in a cookie
     if (sealedSession) {
       response.cookies.set("wos-session", sealedSession, {
