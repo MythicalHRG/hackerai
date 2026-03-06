@@ -61,18 +61,17 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Refresh with organization ID to ensure we get entitlements for the correct org
+    // Refresh with organization ID to ensure we keep the session alive
     const refreshResult = organizationId
       ? await session.refresh({ organizationId })
       : await session.refresh();
 
-    const { sealedSession, entitlements } = refreshResult as any;
+    const { sealedSession } = refreshResult as any;
 
-    const allEntitlements: string[] = Array.isArray(entitlements)
-      ? entitlements
-      : [];
-
-// Bypassed: Force the highest tier for open-source self-hosting
+    // =========================================================================
+    // LOCAL OPEN-SOURCE BYPASS: 
+    // Force the highest tier ("ultra") and ignore real WorkOS/Stripe entitlements
+    // =========================================================================
     const subscription: SubscriptionTier = "ultra";
 
     // Create response with simulated "Ultra" entitlements
@@ -80,6 +79,7 @@ export async function GET(req: NextRequest) {
       entitlements: ["ultra-plan", "pro-plan", "team-plan", "pro-plus-plan"],
       subscription,
     });
+
     // Set the updated refresh session data in a cookie
     if (sealedSession) {
       response.cookies.set("wos-session", sealedSession, {
@@ -93,7 +93,11 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     // Silently handle WorkOS rate limits to avoid noisy logs
     if (isRateLimitError(error)) {
-      return json({ entitlements: [], subscription: "free" });
+      // Still return Ultra even if rate limited
+      return json({ 
+        entitlements: ["ultra-plan", "pro-plan"], 
+        subscription: "ultra" 
+      });
     }
 
     const normalized = extractErrorMessage(error).toLowerCase();
